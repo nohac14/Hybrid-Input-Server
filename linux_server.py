@@ -68,8 +68,7 @@ class WaylandController(InputController):
         
         events = (
             uinput.REL_X, uinput.REL_Y, uinput.REL_WHEEL,
-            uinput.BTN_LEFT, uinput.BTN_RIGHT,
-            # Add any keys you need here
+            uinput.BTN_LEFT, uinput.BTN_RIGHT, uinput.BTN_MIDDLE, 
             uinput.KEY_A, uinput.KEY_B, uinput.KEY_C, uinput.KEY_SPACE, uinput.KEY_ENTER,
             uinput.KEY_VOLUMEUP, uinput.KEY_VOLUMEDOWN, uinput.KEY_MUTE,
         )
@@ -84,7 +83,6 @@ class WaylandController(InputController):
         self.key_map = self._create_key_map()
 
     def _create_key_map(self):
-        # Creates a map from string names to uinput constants
         return {
             'a': uinput.KEY_A, 'b': uinput.KEY_B, 'c': uinput.KEY_C, # etc.
             'space': uinput.KEY_SPACE, 'enter': uinput.KEY_ENTER,
@@ -98,7 +96,11 @@ class WaylandController(InputController):
         self.device.emit(uinput.REL_Y, dy)
 
     def click(self, button):
-        button_map = {'left': uinput.BTN_LEFT, 'right': uinput.BTN_RIGHT}
+        button_map = {
+            'left': uinput.BTN_LEFT,
+            'right': uinput.BTN_RIGHT,
+            'middle': uinput.BTN_MIDDLE
+        }
         self.device.emit_click(button_map.get(button, uinput.BTN_LEFT))
     
     def press_key(self, key):
@@ -106,10 +108,9 @@ class WaylandController(InputController):
             self.device.emit_click(self.key_map[key.lower()])
 
     def press_media_key(self, key_name):
-        self.press_key(key_name) # Reuse the key press logic
+        self.press_key(key_name)
 
     def scroll(self, amount):
-        # uinput scroll direction is opposite to pyautogui's convention
         direction_val = -1 if amount > 0 else 1
         for _ in range(abs(amount)):
             self.device.emit(uinput.REL_WHEEL, direction_val)
