@@ -1,5 +1,3 @@
-That's a great set of initial ideas\! You're right to think about simplifying the layout and leveraging the phone's physical buttons. Your concept is very intuitive. Let's refine it into a polished, user-friendly design.
-
 I agree that **restricting the app to portrait mode** is the best approach, especially for a first version. It makes the layout predictable and much easier to use with one hand.
 
 Here’s a proposed layout that builds on your excellent starting points.
@@ -8,7 +6,7 @@ Here’s a proposed layout that builds on your excellent starting points.
 
 ### \#\# The Core Design Philosophy: Connection-First
 
-Instead of tabs for "Linux" and "Windows/Mac," the app's initial screen should focus on **connecting to a computer**. The user doesn't need to know about the different scripts; the app should feel like one seamless tool.
+The user doesn't need to know about the different scripts; the app should feel like one seamless tool.
 
 The app would use network discovery (Bonjour/mDNS) to automatically find computers running your server script. This is a much smoother user experience.
 
