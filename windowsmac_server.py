@@ -131,8 +131,6 @@ def start_udp_server():
                 # --- Scroll Action ---
                 elif action == 'scroll' and len(command) == 2:
                     scroll_amount = int(command[1])
-                    if sys.platform == "win32":
-                        scroll_amount *= 20
                     pyautogui.scroll(scroll_amount)
 
             except Exception as e:
