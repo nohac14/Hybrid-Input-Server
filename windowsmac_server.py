@@ -33,7 +33,7 @@ def handle_tcp_client(conn, addr):
 
             # --- Mouse Click Actions ---
             if action == 'mclick' and len(command) > 1:
-                pyautogui.click(button=command[1])
+                pyautogui.click(button=command[1].strip())
 
             # --- Keyboard Press Actions ---
             elif action == 'kpress' and len(command) > 1:
