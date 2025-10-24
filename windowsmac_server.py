@@ -26,7 +26,7 @@ def handle_tcp_client(conn, addr):
             if not data:
                 break  # Connection closed by the client
 
-            command_str = data.decode('utf-8').strip()
+            command_str = data.decode('utf-8')
             print(f"TCP RX: {command_str}")
             command = command_str.split(',')
             action = command[0]
