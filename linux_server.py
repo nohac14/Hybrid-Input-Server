@@ -179,8 +179,12 @@ class WaylandController(InputController):
         self.device.emit_click(button_map.get(button, uinput.BTN_LEFT))
     
     def press_key(self, key):
-        if key.lower() in self.key_map:
-            self.device.emit_click(self.key_map[key.lower()])
+        key_to_press = key.lower()
+        if key_to_press == ' ':         # If we receive a literal space...
+            key_to_press = 'space'      # ...map it to the 'space' key name.
+        
+        if key_to_press in self.key_map:
+            self.device.emit_click(self.key_map[key_to_press])
 
     def press_media_key(self, key_name):
         self.press_key(key_name)
