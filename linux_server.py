@@ -3,6 +3,7 @@ import threading
 import subprocess
 import os
 import sys
+from zeroconf import ServiceInfo, Zeroconf
 
 # Try to import uinput, but don't fail immediately if it's not needed.
 try:
@@ -129,7 +130,7 @@ def handle_tcp_client(conn, addr, controller):
 
             if action == 'mclick': controller.click(command[1])
             elif action == 'kpress': controller.press_key(command[1])
-            elif action == 'vol': controller.press_media_key(command[1].replace('volume',''))
+            elif action == 'vol': controller.press_media_key('volume' + command[1])
             # Power commands are OS-level, not display-server-level
             elif action == 'power': handle_power_command(command[1])
 
@@ -187,6 +188,47 @@ if __name__ == "__main__":
         print(f"⚠️ Unknown or unsupported session type: '{session_type}'. Defaulting to X11.")
         controller = X11Controller()
 
+    def get_ip_address():
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            # doesn't even have to be reachable
+            s.connect(('10.255.255.255', 1))
+            IP = s.getsockname()[0]
+        except Exception:
+            IP = '127.0.0.1'
+        finally:
+            s.close()
+        return IP
+    
+    def register_service():
+        local_ip = get_ip_address()
+        # Get the computer's hostname
+        hostname = socket.gethostname().split('.')[0]
+    
+        # Define the service we're broadcasting
+        service_type = "_remotecontrol._tcp.local."
+        service_name = f"{hostname}._remotecontrol._tcp.local."
+    
+        info = ServiceInfo(
+            service_type,
+            service_name,
+            addresses=[socket.inet_aton(local_ip)],
+            port=TCP_PORT,
+            properties={'udp_port': str(UDP_PORT)}, # Send UDP port as metadata
+            server=f"{hostname}.local.",
+        )
+    
+        zeroconf = Zeroconf()
+        print(f"📢 Broadcasting service '{hostname}' on {local_ip}:{TCP_PORT}...")
+        zeroconf.register_service(info)
+        # You would ideally have a zeroconf.close() on script exit
+        # For this long-running server, we'll just let it run.
+    
+    # Start the Bonjour/Zeroconf service broadcasting in a separate thread
+    zeroconf_thread = threading.Thread(target=register_service)
+    zeroconf_thread.daemon = True # Allows main program to exit even if this thread is running
+    zeroconf_thread.start()
+    
     # Start network threads
     tcp_thread = threading.Thread(target=start_tcp_server, args=(controller,))
     udp_thread = threading.Thread(target=start_udp_server, args=(controller,))
