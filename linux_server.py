@@ -3,6 +3,7 @@ import threading
 import subprocess
 import os
 import sys
+import shutil
 from zeroconf import ServiceInfo, Zeroconf
 
 # Try to import uinput, but don't fail immediately if it's not needed.
@@ -34,6 +35,11 @@ class InputController:
 class X11Controller(InputController):
     """Controls input using the xdotool command for X11."""
     def __init__(self):
+        # Check if xdotool command exists
+        if not shutil.which("xdotool"):
+            print("❌ 'xdotool' is not installed. Please install it to use the X11 controller.")
+            print("   (e.g., 'sudo apt-get install xdotool' or 'sudo dnf install xdotool')")
+            sys.exit(1)
         print("✅ Initialized X11 Input Controller.")
 
     def move_mouse(self, dx, dy):
@@ -67,30 +73,98 @@ class WaylandController(InputController):
             print("❌ 'python-uinput' library is not installed. Please run 'pip install python-uinput'")
             sys.exit(1)
         
-        events = (
-            uinput.REL_X, uinput.REL_Y, uinput.REL_WHEEL,
-            uinput.BTN_LEFT, uinput.BTN_RIGHT, uinput.BTN_MIDDLE, 
-            uinput.KEY_A, uinput.KEY_B, uinput.KEY_C, uinput.KEY_SPACE, uinput.KEY_ENTER,
-            uinput.KEY_VOLUMEUP, uinput.KEY_VOLUMEDOWN, uinput.KEY_MUTE,
+        # First, build the map of all keys we will support
+        self.key_map = self._create_key_map()
+        
+        # --- CORRECTED CODE STARTS HERE ---
+        
+        # Now, create the list of events based on that map
+        # This ensures the device is registered to handle every key you've defined.
+        key_events = self.key_map.values() 
+        mouse_events = (
+            uinput.REL_X, 
+            uinput.REL_Y, 
+            uinput.REL_WHEEL,
+            uinput.BTN_LEFT, 
+            uinput.BTN_RIGHT, 
+            uinput.BTN_MIDDLE,
         )
         
+        # Combine all mouse and keyboard events
+        all_events = mouse_events + tuple(key_events)
+        
         try:
-            self.device = uinput.Device(events, name="virtual-ios-remote")
+            self.device = uinput.Device(all_events, name="virtual-ios-remote")
         except PermissionError:
             print("❌ Permission Denied. Wayland controller must be run with sudo.")
             sys.exit(1)
             
         print("✅ Initialized Wayland Input Controller (virtual device created).")
-        self.key_map = self._create_key_map()
 
     def _create_key_map(self):
-        return {
-            'a': uinput.KEY_A, 'b': uinput.KEY_B, 'c': uinput.KEY_C, # etc.
-            'space': uinput.KEY_SPACE, 'enter': uinput.KEY_ENTER,
+        key_map = {
+            # --- Special & Editing Keys ---
+            'enter': uinput.KEY_ENTER,
+            'space': uinput.KEY_SPACE,
+            'backspace': uinput.KEY_BACKSPACE,
+            'tab': uinput.KEY_TAB,
+            'esc': uinput.KEY_ESC,
+            'delete': uinput.KEY_DELETE,
+            'insert': uinput.KEY_INSERT,
+            
+            # --- Modifier Keys ---
+            'leftshift': uinput.KEY_LEFTSHIFT,
+            'rightshift': uinput.KEY_RIGHTSHIFT,
+            'leftctrl': uinput.KEY_LEFTCTRL,
+            'rightctrl': uinput.KEY_RIGHTCTRL,
+            'leftalt': uinput.KEY_LEFTALT,
+            'rightalt': uinput.KEY_RIGHTALT,
+            'leftmeta': uinput.KEY_LEFTMETA,   # Windows/Super/Command key
+            'rightmeta': uinput.KEY_RIGHTMETA, # Windows/Super/Command key
+            
+            # --- Arrow & Navigation Keys ---
+            'up': uinput.KEY_UP,
+            'down': uinput.KEY_DOWN,
+            'left': uinput.KEY_LEFT,
+            'right': uinput.KEY_RIGHT,
+            'home': uinput.KEY_HOME,
+            'end': uinput.KEY_END,
+            'pageup': uinput.KEY_PAGEUP,
+            'pagedown': uinput.KEY_PAGEDOWN,
+            
+            # --- Media Keys ---
             'volumeup': uinput.KEY_VOLUMEUP,
             'volumedown': uinput.KEY_VOLUMEDOWN,
-            'volumemute': uinput.KEY_MUTE
+            'volumemute': uinput.KEY_MUTE,
+            
+            # --- Punctuation & Symbols ---
+            'semicolon': uinput.KEY_SEMICOLON,          # ;
+            'apostrophe': uinput.KEY_APOSTROPHE,       # '
+            'grave': uinput.KEY_GRAVE,                 # `
+            'comma': uinput.KEY_COMMA,                 # ,
+            'dot': uinput.KEY_DOT,                     # .
+            'slash': uinput.KEY_SLASH,                 # /
+            'backslash': uinput.KEY_BACKSLASH,         # \
+            'minus': uinput.KEY_MINUS,                 # -
+            'equal': uinput.KEY_EQUAL,                 # =
+            'leftbrace': uinput.KEY_LEFTBRACE,         # [
+            'rightbrace': uinput.KEY_RIGHTBRACE,       # ]
         }
+        
+        # Programmatically add letters (a-z)
+        for i in range(26):
+            char = chr(ord('a') + i)
+            key_map[char] = getattr(uinput, f"KEY_{char.upper()}")
+    
+        # Programmatically add numbers (0-9)
+        for i in range(10):
+            key_map[str(i)] = getattr(uinput, f"KEY_{i}")
+
+        # f-keys
+        for i in range(1, 13):
+            key_map[f'f{i}'] = getattr(uinput, f"KEY_F{i}")
+    
+        return key_map
 
     def move_mouse(self, dx, dy):
         self.device.emit(uinput.REL_X, dx, syn=False)
