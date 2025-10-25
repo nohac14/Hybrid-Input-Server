@@ -20,6 +20,7 @@ def handle_tcp_client(conn, addr):
     Handles incoming TCP connections for commands like clicks, keys, volume, and power.
     """
     print(f"✅ TCP connection established from {addr}")
+    
     try:
         while True:
             data = conn.recv(1024)
@@ -37,7 +38,11 @@ def handle_tcp_client(conn, addr):
 
             # --- Keyboard Press Actions ---
             elif action == 'kpress' and len(command) > 1:
-                pyautogui.press(command[1])
+                # Strip the key to remove network characters,
+                # pyautogui handles keywords like 'space', 'enter', etc.
+                key_to_press = command[1].strip('\n\r')
+                print(f"Executing key press: '{key_to_press}'")
+                pyautogui.press(key_to_press)
 
             # --- Volume Control Actions ---
             elif action == 'vol' and len(command) > 1:
