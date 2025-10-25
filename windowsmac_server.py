@@ -20,6 +20,8 @@ def handle_tcp_client(conn, addr):
     Handles incoming TCP connections for commands like clicks, keys, volume, and power.
     """
     print(f"✅ TCP connection established from {addr}")
+
+    buffer = ""
     
     try:
         while True:
@@ -27,63 +29,69 @@ def handle_tcp_client(conn, addr):
             if not data:
                 break  # Connection closed by the client
 
-            command_str = data.decode('utf-8')
-            print(f"TCP RX: {command_str}")
-            command = command_str.split(',')
-            action = command[0]
+            buffer += data.decode('utf-8')
 
-            # --- Mouse Click Actions ---
-            if action == 'mclick' and len(command) > 1:
-                pyautogui.click(button=command[1].strip())
-
-            # --- Keyboard Press Actions ---
-            elif action == 'kpress' and len(command) > 1:
-                # Strip the key to remove network characters,
-                # pyautogui handles keywords like 'space', 'enter', etc.
-                key_to_press = command[1].strip('\n\r')
-                print(f"Executing key press: '{key_to_press}'")
-                pyautogui.press(key_to_press)
-
-            # --- Volume Control Actions ---
-            elif action == 'vol' and len(command) > 1:
-                direction = command[1]
-                if direction == 'up':
-                    pyautogui.press('volumeup')
-                elif direction == 'down':
-                    pyautogui.press('volumedown')
-                elif direction == 'mute':
-                    pyautogui.press('volumemute')
-
-            # --- System Power Actions ---
-            elif action == 'power' and len(command) > 1:
-                sub_command = command[1]
-                cmd = []
-
-                if sys.platform == "win32":  # For Windows
-                    if sub_command == 'shutdown':
-                        cmd = ["shutdown", "/s", "/t", "0"]
-                    elif sub_command == 'restart':
-                        cmd = ["shutdown", "/r", "/t", "0"]
-                    elif sub_command == 'sleep':
-                        cmd = ["rundll32.exe", "powrprof.dll,SetSuspendState", "0,1,0"]
-                    elif sub_command == 'lock':
-                        cmd = ["rundll32.exe", "user32.dll,LockWorkStation"]
-
-                elif sys.platform == "darwin":  # For macOS
-                    if sub_command == 'shutdown':
-                        cmd = ["osascript", "-e", 'tell app "System Events" to shut down']
-                    elif sub_command == 'restart':
-                        cmd = ["osascript", "-e", 'tell app "System Events" to restart']
-                    elif sub_command == 'sleep':
-                        cmd = ["osascript", "-e", 'tell app "System Events" to sleep']
-                    elif sub_command == 'lock':
-                        cmd = ["/System/Library/CoreServices/Menu Extras/User.menu/Contents/Resources/CGSession", "-suspend"]
-                
-                if cmd:
-                    print(f"Executing: {' '.join(cmd)}")
-                    subprocess.run(cmd)
-                else:
-                    print(f"⚠️ Unknown power command for {sys.platform}: {sub_command}")
+            while '\n' in buffer:
+                # Split off the first complete command from the buffer
+                command_str, buffer = buffer.split('\n', 1)
+    
+                print(f"TCP RX: {command_str}")
+                command = command_str.split(',')
+                # Use strip() on the action to be safe
+                action = command[0].strip()
+    
+                # --- Mouse Click Actions ---
+                if action == 'mclick' and len(command) > 1:
+                    pyautogui.click(button=command[1].strip())
+    
+                # --- Keyboard Press Actions ---
+                elif action == 'kpress' and len(command) > 1:
+                    # Strip the key to remove network characters,
+                    # pyautogui handles keywords like 'space', 'enter', etc.
+                    key_to_press = command[1].strip('\n\r')
+                    print(f"Executing key press: '{key_to_press}'")
+                    pyautogui.press(key_to_press)
+    
+                # --- Volume Control Actions ---
+                elif action == 'vol' and len(command) > 1:
+                    direction = command[1].strip()
+                    if direction == 'up':
+                        pyautogui.press('volumeup')
+                    elif direction == 'down':
+                        pyautogui.press('volumedown')
+                    elif direction == 'mute':
+                        pyautogui.press('volumemute')
+    
+                # --- System Power Actions ---
+                elif action == 'power' and len(command) > 1:
+                    sub_command = command[1].strip()
+                    cmd = []
+    
+                    if sys.platform == "win32":  # For Windows
+                        if sub_command == 'shutdown':
+                            cmd = ["shutdown", "/s", "/t", "0"]
+                        elif sub_command == 'restart':
+                            cmd = ["shutdown", "/r", "/t", "0"]
+                        elif sub_command == 'sleep':
+                            cmd = ["rundll32.exe", "powrprof.dll,SetSuspendState", "0,1,0"]
+                        elif sub_command == 'lock':
+                            cmd = ["rundll32.exe", "user32.dll,LockWorkStation"]
+    
+                    elif sys.platform == "darwin":  # For macOS
+                        if sub_command == 'shutdown':
+                            cmd = ["osascript", "-e", 'tell app "System Events" to shut down']
+                        elif sub_command == 'restart':
+                            cmd = ["osascript", "-e", 'tell app "System Events" to restart']
+                        elif sub_command == 'sleep':
+                            cmd = ["osascript", "-e", 'tell app "System Events" to sleep']
+                        elif sub_command == 'lock':
+                            cmd = ["/System/Library/CoreServices/Menu Extras/User.menu/Contents/Resources/CGSession", "-suspend"]
+                    
+                    if cmd:
+                        print(f"Executing: {' '.join(cmd)}")
+                        subprocess.run(cmd)
+                    else:
+                        print(f"⚠️ Unknown power command for {sys.platform}: {sub_command}")
 
     except ConnectionResetError:
         print(f"⚠️ Client {addr} disconnected unexpectedly.")
