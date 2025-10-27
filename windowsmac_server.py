@@ -130,7 +130,7 @@ def start_udp_server():
 
                 # --- Mouse Movement Action ---
                 if action == 'mmove' and len(command) == 3:
-                    dx, dy = int(command[1]), int(command[2])
+                    dx, dy = int(float(command[1])), int(float(command[2]))
                     pyautogui.moveRel(dx, dy)
 
                 # --- Scroll Action ---
